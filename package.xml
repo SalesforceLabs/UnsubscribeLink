@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Unsubscribe</fullName>
+    <description>create an unsubscribe process for email recipients to opt out of emails sent through Salesforce. More info here. https://wp.me/p9qPLI-8a</description>
+    <types>
+        <members>Unsubscribe</members>
+        <name>ApexPage</name>
+    </types>
+    <types>
+        <members>Flow_Error_Email__mdt.Comma_Separated_Email_List__c</members>
+        <members>Unsubscribe__c.Contact__c</members>
+        <members>Unsubscribe__c.Lead__c</members>
+        <members>Unsubscribe__c.Status__c</members>
+        <members>Unsubscribe__c.Unsubscribe_Email__c</members>
+        <name>CustomField</name>
+    </types>
+    <types>
+        <members>Flow_Error_Email__mdt</members>
+        <members>Unsubscribe__c</members>
+        <name>CustomObject</name>
+    </types>
+    <types>
+        <members>Unsubscribe</members>
+        <members>Unsubscribe/Unsubscribe_HTML_Template</members>
+        <members>Unsubscribe/Unsubscribe_Link</members>
+        <members>Unsubscribe/Unsubscribe_Link_Leads</members>
+        <name>EmailTemplate</name>
+    </types>
+    <types>
+        <members>UnsubscribeContacts</members>
+        <members>UnsubscribeLeads</members>
+        <members>Unsubscribe_PB</members>
+        <members>Unsubscribe_Part_1</members>
+        <name>Flow</name>
+    </types>
+    <types>
+        <members>Flow_Error_Email__mdt-Error Email Recipient Layout</members>
+        <members>Unsubscribe__c-Unsubscribe Layout</members>
+        <name>Layout</name>
+    </types>
+    <version>47.0</version>
+</Package>
