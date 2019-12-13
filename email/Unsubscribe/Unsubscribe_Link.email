@@ -1,0 +1,14 @@
+<messaging:emailTemplate subject="Template with Unsubscribe Link" recipientType="Contact" >
+<!--Template by Jessie Rymph with unmanaged package Unsubscribe from Salesforce Labs.-->
+<!--A visualforce template allows you to account for email addresses that include special characters like plus signs.-->
+     <messaging:htmlEmailBody >
+        <html>
+              <body>
+               <p> Insert content of email here.</p> 
+               <p> Insert your site domain name in the URL below. </p>
+                <a href="https://InsertYourSiteDomainNameHere/Unsubscribe?recordId={!recipient.Id}&Email={!URLENCODE(recipient.Email)}">Click here to unsubscribe from all emails from our organization.</a>
+                  <!-- For example my line 9 would look like <a href="https://sdo-demo-main-164dcce81f8.secure.force.com//Unsubscribe?recordId={!recipient.Id}&Email={!URLENCODE(recipient.Email)}">Click here to unsubscribe from all emails from our organization.</a> -->
+              </body>
+       </html>
+     </messaging:htmlEmailBody>
+</messaging:emailTemplate>

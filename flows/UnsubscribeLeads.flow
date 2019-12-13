@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <description>Send error email to alert admin.</description>
+        <name>Send_Error_Email</name>
+        <label>Send Error Email</label>
+        <locationX>654</locationX>
+        <locationY>79</locationY>
+        <actionName>emailSimple</actionName>
+        <actionType>emailSimple</actionType>
+        <inputParameters>
+            <name>emailBody</name>
+            <value>
+                <elementReference>ErrorEmail</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>emailAddresses</name>
+            <value>
+                <elementReference>ErrorRecipient</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>emailSubject</name>
+            <value>
+                <stringValue>unsubscribe error</stringValue>
+            </value>
+        </inputParameters>
+    </actionCalls>
+    <assignments>
+        <description>Add the revised lead to the collection of records to be modified at the end of the loop.</description>
+        <name>Add_to_collection</name>
+        <label>Add to collection</label>
+        <locationX>387</locationX>
+        <locationY>526</locationY>
+        <assignmentItems>
+            <assignToReference>leadCollectionUpdate</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>leadLoopVar</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>loop</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Mark email opt out as true for each lead in the loop.</description>
+        <name>Update_Records</name>
+        <label>Update Records</label>
+        <locationX>490</locationX>
+        <locationY>641</locationY>
+        <assignmentItems>
+            <assignToReference>leadLoopVar.HasOptedOutOfEmail</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_to_collection</targetReference>
+        </connector>
+    </assignments>
+    <description>Part of the unmanaged packed Unsubscribe from Salesforce Labs. This flow is launched by the process builder UnsubscribePB and loops through all leads with a particular email address to mark them as email opt out.</description>
+    <formulas>
+        <description>Error message to include in error email to admin.</description>
+        <name>ErrorEmail</name>
+        <dataType>String</dataType>
+        <expression>&quot;Attempted to unsubscribe this email address &quot; &amp; {!Email} &amp; &quot; but there was an error in the flow UnsubscribeLeads, which looks for all leads with this email address and marks them email opt out = true.&quot;</expression>
+    </formulas>
+    <interviewLabel>UnsubscribeLeads {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>UnsubscribeLeads</label>
+    <loops>
+        <description>Loop through all of the leads that have this email address in the Email field.</description>
+        <name>loop</name>
+        <label>loop</label>
+        <locationX>293</locationX>
+        <locationY>640</locationY>
+        <assignNextValueToReference>leadLoopVar</assignNextValueToReference>
+        <collectionReference>leadEmailCollection</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Update_Records</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Update_Collection</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <description>Look for Leads who have this email in Email and have not already opted out.</description>
+        <name>FastLookupEmail</name>
+        <label>FastLookupEmail</label>
+        <locationX>58</locationX>
+        <locationY>640</locationY>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>loop</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Lookup_Error_Recipient</targetReference>
+        </faultConnector>
+        <filters>
+            <field>Email</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Email</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>HasOptedOutOfEmail</field>
+            <operator>EqualTo</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <object>Lead</object>
+        <outputReference>leadEmailCollection</outputReference>
+        <queriedFields>Id</queriedFields>
+    </recordLookups>
+    <recordLookups>
+        <description>Lookup Error Recipient (stored in custom metadata type &quot;Error Email Recipients&quot;) - people who should get the email for an error in this flow.</description>
+        <name>Lookup_Error_Recipient</name>
+        <label>Lookup Error Recipient</label>
+        <locationX>251</locationX>
+        <locationY>79</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Update_Unsubscribe_Record</targetReference>
+        </connector>
+        <object>Flow_Error_Email__mdt</object>
+        <outputAssignments>
+            <assignToReference>ErrorRecipient</assignToReference>
+            <field>Comma_Separated_Email_List__c</field>
+        </outputAssignments>
+    </recordLookups>
+    <recordUpdates>
+        <description>Update all of the modified leads at once.</description>
+        <name>Update_Collection</name>
+        <label>Update Collection</label>
+        <locationX>130</locationX>
+        <locationY>188</locationY>
+        <faultConnector>
+            <targetReference>Lookup_Error_Recipient</targetReference>
+        </faultConnector>
+        <inputReference>leadCollectionUpdate</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <description>If the Flow faults here, update the Unsubscribe record with Error.</description>
+        <name>Update_Unsubscribe_Record</name>
+        <label>Update Unsubscribe Record</label>
+        <locationX>392</locationX>
+        <locationY>79</locationY>
+        <connector>
+            <targetReference>Send_Error_Email</targetReference>
+        </connector>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>UnsubscribeRecord.Id</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Status__c</field>
+            <value>
+                <stringValue>Error</stringValue>
+            </value>
+        </inputAssignments>
+        <object>Unsubscribe__c</object>
+    </recordUpdates>
+    <startElementReference>FastLookupEmail</startElementReference>
+    <status>Active</status>
+    <variables>
+        <name>Email</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>Update with email address of the user who should be notified when the person who wants to subscribe gets an error.</description>
+        <name>ErrorRecipient</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <stringValue>jrymph@salesforce.com</stringValue>
+        </value>
+    </variables>
+    <variables>
+        <description>collection of records to be updated at the end of the Loop</description>
+        <name>leadCollectionUpdate</name>
+        <dataType>SObject</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>Lead</objectType>
+    </variables>
+    <variables>
+        <name>leadEmailCollection</name>
+        <dataType>SObject</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>Lead</objectType>
+    </variables>
+    <variables>
+        <description>the record that is currently being evaluated in the loop</description>
+        <name>leadLoopVar</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>Lead</objectType>
+    </variables>
+    <variables>
+        <name>UnsubscribeRecord</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+        <objectType>Unsubscribe__c</objectType>
+    </variables>
+</Flow>

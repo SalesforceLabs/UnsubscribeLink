@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <description>Send email to administrators alerting them about the error.</description>
+        <name>Send_Error_Email</name>
+        <label>Send Error Email</label>
+        <locationX>678</locationX>
+        <locationY>91</locationY>
+        <actionName>emailSimple</actionName>
+        <actionType>emailSimple</actionType>
+        <inputParameters>
+            <name>emailBody</name>
+            <value>
+                <elementReference>ErrorEmail</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>emailAddresses</name>
+            <value>
+                <elementReference>ErrorRecipient</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>emailSubject</name>
+            <value>
+                <stringValue>unsubscribe error</stringValue>
+            </value>
+        </inputParameters>
+    </actionCalls>
+    <assignments>
+        <description>Add the record in the loop to a collection of records to be updated.</description>
+        <name>Add_to_collection</name>
+        <label>Add to collection</label>
+        <locationX>397</locationX>
+        <locationY>321</locationY>
+        <assignmentItems>
+            <assignToReference>RecordsUpdated</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>LoopVar</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>loop</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Update record in the loop to Email Opt Out equals true.</description>
+        <name>Update_Records</name>
+        <label>Update Records</label>
+        <locationX>530</locationX>
+        <locationY>582</locationY>
+        <assignmentItems>
+            <assignToReference>LoopVar.HasOptedOutOfEmail</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_to_collection</targetReference>
+        </connector>
+    </assignments>
+    <description>Part of unmanaged package &quot;Unsubscribe&quot; from Salesforce Labs on AppExchange. This flow launched by Process Builder &quot;Unsubscribe PB.&quot;</description>
+    <formulas>
+        <name>ErrorEmail</name>
+        <dataType>String</dataType>
+        <expression>&quot;Attempted to unsubscribe this email address &quot; &amp; {!Email} &amp; &quot; but there was an error in the flow UnsubscribeContacts, which looks for all Contacts with this email address and marks them email opt out = true.&quot;</expression>
+    </formulas>
+    <interviewLabel>UnsubscribeContacts {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>UnsubscribeContacts</label>
+    <loops>
+        <description>Loop through all contacts with this email address in the Email field.</description>
+        <name>loop</name>
+        <label>loop</label>
+        <locationX>243</locationX>
+        <locationY>582</locationY>
+        <assignNextValueToReference>LoopVar</assignNextValueToReference>
+        <collectionReference>contactCollection</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Update_Records</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Update_Collection</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <description>Look for contacts who have this email address as the preferred email and have not opted out of email. NPSP automatically populates the Email field with preferred Email.</description>
+        <name>FastLookupEmail</name>
+        <label>FastLookupEmail</label>
+        <locationX>36</locationX>
+        <locationY>483</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>loop</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Get_Error_Recipient</targetReference>
+        </faultConnector>
+        <filters>
+            <field>Email</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Email</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>HasOptedOutOfEmail</field>
+            <operator>EqualTo</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <object>Contact</object>
+        <outputReference>contactCollection</outputReference>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>HasOptedOutOfEmail</queriedFields>
+    </recordLookups>
+    <recordLookups>
+        <description>Lookup Error Recipient (stored in custom metadata type) - person who should get the email for an error in this flow.
+
+This package, Unsubscribe, contains a Custom Metadata Type to store the email addresses of recipients of the error handling message. You’ll need to create a record.
+1.	Open Custom Metadata Types from Setup.
+2.	Click Manage Records.
+3.	Click New.
+4.	Label and name the record “Error email list” or anything else you want. It doesn’t matter to this process.
+5.	In Comma Separated Email List, type the list of anyone who should be alerted when a Flow fault occurs. Separate the emails with commas.
+6.    Save.</description>
+        <name>Get_Error_Recipient</name>
+        <label>Get Error Recipient</label>
+        <locationX>338</locationX>
+        <locationY>91</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Update_Unsubscribe</targetReference>
+        </connector>
+        <object>Flow_Error_Email__mdt</object>
+        <outputAssignments>
+            <assignToReference>ErrorRecipient</assignToReference>
+            <field>Comma_Separated_Email_List__c</field>
+        </outputAssignments>
+    </recordLookups>
+    <recordUpdates>
+        <description>Update all Contacts in collection at once as email opt out equals true.</description>
+        <name>Update_Collection</name>
+        <label>Update Collection</label>
+        <locationX>148</locationX>
+        <locationY>90</locationY>
+        <faultConnector>
+            <targetReference>Get_Error_Recipient</targetReference>
+        </faultConnector>
+        <inputReference>RecordsUpdated</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <description>If the Flow faults here, update the unsubscribe record with Error.</description>
+        <name>Update_Unsubscribe</name>
+        <label>Update Unsubscribe</label>
+        <locationX>498</locationX>
+        <locationY>91</locationY>
+        <connector>
+            <targetReference>Send_Error_Email</targetReference>
+        </connector>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>UnsubscribeRecord.Id</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Status__c</field>
+            <value>
+                <stringValue>Error</stringValue>
+            </value>
+        </inputAssignments>
+        <object>Unsubscribe__c</object>
+    </recordUpdates>
+    <startElementReference>FastLookupEmail</startElementReference>
+    <status>Active</status>
+    <variables>
+        <name>contactCollection</name>
+        <dataType>SObject</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>Contact</objectType>
+    </variables>
+    <variables>
+        <name>Email</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>Update with email address of the user who should be notified when the person who wants to subscribe gets an error.</description>
+        <name>ErrorRecipient</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <stringValue>jrymph@salesforce.com</stringValue>
+        </value>
+    </variables>
+    <variables>
+        <name>LoopVar</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>true</isOutput>
+        <objectType>Contact</objectType>
+    </variables>
+    <variables>
+        <description>collection of records updated in the process</description>
+        <name>RecordsUpdated</name>
+        <dataType>SObject</dataType>
+        <isCollection>true</isCollection>
+        <isInput>true</isInput>
+        <isOutput>true</isOutput>
+        <objectType>Contact</objectType>
+    </variables>
+    <variables>
+        <name>UnsubscribeRecord</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+        <objectType>Unsubscribe__c</objectType>
+    </variables>
+</Flow>

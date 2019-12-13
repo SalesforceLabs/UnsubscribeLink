@@ -1,0 +1,436 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <description>Alert the person that they unsubscribed.</description>
+        <name>ConfirmationEmail</name>
+        <label>ConfirmationEmail</label>
+        <locationX>1154</locationX>
+        <locationY>128</locationY>
+        <actionName>emailSimple</actionName>
+        <actionType>emailSimple</actionType>
+        <connector>
+            <targetReference>ConfirmationScreen</targetReference>
+        </connector>
+        <inputParameters>
+            <name>emailBody</name>
+            <value>
+                <elementReference>PlainTextEmailBody</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>emailAddresses</name>
+            <value>
+                <elementReference>Email</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>senderAddress</name>
+            <value>
+                <elementReference>SenderAddress</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>emailSubject</name>
+            <value>
+                <stringValue>Unsubscribe Confirmation</stringValue>
+            </value>
+        </inputParameters>
+    </actionCalls>
+    <actionCalls>
+        <name>Send_Error_Alert_Email</name>
+        <label>Send Error Alert Email</label>
+        <locationX>587</locationX>
+        <locationY>373</locationY>
+        <actionName>emailSimple</actionName>
+        <actionType>emailSimple</actionType>
+        <connector>
+            <targetReference>Something_went_wrong</targetReference>
+        </connector>
+        <inputParameters>
+            <name>emailBody</name>
+            <value>
+                <elementReference>errorBody</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>emailAddresses</name>
+            <value>
+                <elementReference>ErrorRecipient</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>emailSubject</name>
+            <value>
+                <stringValue>Unsubscribe Email Error Alert</stringValue>
+            </value>
+        </inputParameters>
+    </actionCalls>
+    <decisions>
+        <description>Was the original email with an unsubscribe link sent from a contact or a lead?</description>
+        <name>Contact_or_Lead</name>
+        <label>Contact or Lead</label>
+        <locationX>215</locationX>
+        <locationY>86</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Contact</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>recordId</leftValueReference>
+                <operator>StartsWith</operator>
+                <rightValue>
+                    <stringValue>003</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_Contact</targetReference>
+            </connector>
+            <label>Contact</label>
+        </rules>
+        <rules>
+            <name>Lead</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>recordId</leftValueReference>
+                <operator>StartsWith</operator>
+                <rightValue>
+                    <stringValue>00Q</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_Lead</targetReference>
+            </connector>
+            <label>Lead</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>This decision looks to see if the id in the unsubscribe link matched the email in the link and a record is found. If so the variable FoundID will not be null.</description>
+        <name>Record_Found</name>
+        <label>Record Found?</label>
+        <locationX>565</locationX>
+        <locationY>97</locationY>
+        <defaultConnector>
+            <targetReference>Send_Error_Alert_Email</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No Record Found</defaultConnectorLabel>
+        <rules>
+            <name>Yes_Record_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>FoundId</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>x18DigitID</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Are_you_sure</targetReference>
+            </connector>
+            <label>Yes Record Found</label>
+        </rules>
+    </decisions>
+    <formulas>
+        <name>FlowFault</name>
+        <dataType>String</dataType>
+        <expression>{!$Flow.FaultMessage}</expression>
+    </formulas>
+    <formulas>
+        <name>PlainTextEmailBody</name>
+        <dataType>String</dataType>
+        <expression>&quot;You will no longer receive email from &quot; + {!OrganizationName} + &quot;.&quot;</expression>
+    </formulas>
+    <formulas>
+        <description>Formula resolves to Contact Id if the unsubscribe record is attached to a contact - the original record of the unsubscribe link was a contact.</description>
+        <name>useContactId</name>
+        <dataType>String</dataType>
+        <expression>IF({!Contact}=true,{!recordId},&quot;&quot;)</expression>
+    </formulas>
+    <formulas>
+        <description>Formula resolves to Lead Id if the unsubscribe record is attached to a Lead - the original record of the unsubscribe link was a lead.</description>
+        <name>UseLeadId</name>
+        <dataType>String</dataType>
+        <expression>IF({!Lead}=true,{!recordId},&quot;&quot;)</expression>
+    </formulas>
+    <formulas>
+        <description>18 digit id of the record. The email template only sends the 15 digit id.</description>
+        <name>x18DigitID</name>
+        <dataType>String</dataType>
+        <expression>Casesafeid({!recordId})</expression>
+    </formulas>
+    <interviewLabel>Unsubscribe Part 1 {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Unsubscribe Part 1</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>Flow</processType>
+    <recordCreates>
+        <description>Create Unsubscribe record which stores details of this transaction.</description>
+        <name>Create_Unsubscribe_Record</name>
+        <label>Create Unsubscribe Record</label>
+        <locationX>1013</locationX>
+        <locationY>128</locationY>
+        <connector>
+            <targetReference>ConfirmationEmail</targetReference>
+        </connector>
+        <inputAssignments>
+            <field>Contact__c</field>
+            <value>
+                <elementReference>useContactId</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Lead__c</field>
+            <value>
+                <elementReference>UseLeadId</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Status__c</field>
+            <value>
+                <stringValue>Unsubscribed</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Unsubscribe_Email__c</field>
+            <value>
+                <elementReference>Email</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Unsubscribe__c</object>
+    </recordCreates>
+    <recordLookups>
+        <description>The package Unsubscribe contains a Custom Metadata Type to store the email addresses of recipients of the error handling message. You’ll need to create a record, and then you&apos;ll look it up here.
+1.	Open Custom Metadata Types from Setup.
+2.	Click Manage Records.
+3.	Click New.
+4.	Label and name the record “Error email list” or anything else you want. It doesn’t matter to this process.
+5.	In Comma Separated Email List, type the list of anyone who should be alerted when a Flow fault occurs. Separate the emails with commas.
+6.    Click Save.</description>
+        <name>Get_Admin_Recipient_Email</name>
+        <label>Get Admin Recipient Email</label>
+        <locationX>50</locationX>
+        <locationY>189</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Contact_or_Lead</targetReference>
+        </connector>
+        <object>Flow_Error_Email__mdt</object>
+        <outputAssignments>
+            <assignToReference>ErrorRecipient</assignToReference>
+            <field>Comma_Separated_Email_List__c</field>
+        </outputAssignments>
+    </recordLookups>
+    <recordLookups>
+        <description>Look for a contact record with ID and email address from the URL of the unsubscribe link.</description>
+        <name>Get_Contact</name>
+        <label>Get Contact</label>
+        <locationX>393</locationX>
+        <locationY>167</locationY>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Record_Found</targetReference>
+        </connector>
+        <filters>
+            <field>Email</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Email</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <object>Contact</object>
+        <outputAssignments>
+            <assignToReference>FoundId</assignToReference>
+            <field>Id</field>
+        </outputAssignments>
+    </recordLookups>
+    <recordLookups>
+        <description>Look for a lead record with ID and email address from the URL of the unsubscribe link.</description>
+        <name>Get_Lead</name>
+        <label>Get Lead</label>
+        <locationX>389</locationX>
+        <locationY>35</locationY>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Record_Found</targetReference>
+        </connector>
+        <filters>
+            <field>Email</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Email</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <object>Lead</object>
+        <outputAssignments>
+            <assignToReference>FoundId</assignToReference>
+            <field>Id</field>
+        </outputAssignments>
+    </recordLookups>
+    <screens>
+        <description>confirmation screen for person to confirm they want to unsubscribe. Update the variable &quot;Organization Name&quot; with your organization&apos;s name.</description>
+        <name>Are_you_sure</name>
+        <label>Are you sure</label>
+        <locationX>775</locationX>
+        <locationY>128</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <connector>
+            <targetReference>Create_Unsubscribe_Record</targetReference>
+        </connector>
+        <fields>
+            <name>confirmation</name>
+            <fieldText>&lt;p&gt;&lt;span style=&quot;font-size: 18px; font-family: verdana; color: rgb(0, 0, 0);&quot;&gt;To unsubscribe {!Email} from all further emails from {!OrganizationName}, click NEXT.&lt;/span&gt;&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>ConfirmationScreen</name>
+        <label>ConfirmationScreen</label>
+        <locationX>1283</locationX>
+        <locationY>128</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>SuccessScreen</name>
+            <fieldText>&lt;p&gt;&lt;span style=&quot;font-size: 16px; font-family: verdana; color: rgb(0, 0, 0);&quot;&gt;Thank you. You have successfully unsubscribed &lt;/span&gt;&lt;b style=&quot;font-size: 16px; font-family: verdana; color: rgb(0, 0, 0);&quot;&gt;{!Email}.&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;font-size: 16px; font-family: verdana; color: rgb(0, 0, 0);&quot;&gt;You will receive a confirmation email shortly.&lt;/span&gt;&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>Something_went_wrong</name>
+        <label>Something went wrong</label>
+        <locationX>800</locationX>
+        <locationY>373</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>true</allowPause>
+        <fields>
+            <name>wentwrong</name>
+            <fieldText>&lt;p&gt;Something went wrong. Sorry about that. We were not able to unsubscribe you at this time, but we have been alerted about the problem.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <start>
+        <locationX>50</locationX>
+        <locationY>50</locationY>
+        <connector>
+            <targetReference>Get_Admin_Recipient_Email</targetReference>
+        </connector>
+    </start>
+    <status>Active</status>
+    <textTemplates>
+        <description>Email sent to administrator(s) when the Flow experiences an error.</description>
+        <name>errorBody</name>
+        <text>Alert: there was an error in running the Flow Unsubscribe.
+recordId: {!recordId}
+Email:{!Email}
+Here are the variables that were input from the link in the email. 
+recordId = {!recordId}
+email = {!Email}
+FoundId ={!FoundId}
+ Lead Id: {!LeadID}
+ErrorRecipient ={!ErrorRecipient}</text>
+    </textTemplates>
+    <variables>
+        <name>contactCollection</name>
+        <dataType>SObject</dataType>
+        <isCollection>true</isCollection>
+        <isInput>true</isInput>
+        <isOutput>true</isOutput>
+        <objectType>Contact</objectType>
+    </variables>
+    <variables>
+        <name>Email</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>Update default below to user who should be alerted when this error occurs.</description>
+        <name>ErrorRecipient</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <name>FoundId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>id of the lead record from the unsubscribe link</description>
+        <name>LeadID</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <description>Edit the default value below to update the name of your organization.</description>
+        <name>OrganizationName</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <stringValue>our organization</stringValue>
+        </value>
+    </variables>
+    <variables>
+        <description>userId incoming from the email link</description>
+        <name>recordId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <description>collection of records updated in the process</description>
+        <name>RecordsUpdated</name>
+        <dataType>SObject</dataType>
+        <isCollection>true</isCollection>
+        <isInput>true</isInput>
+        <isOutput>true</isOutput>
+        <objectType>Contact</objectType>
+    </variables>
+    <variables>
+        <description>Update Default Value below with email address that this email should be &quot;from&quot;</description>
+        <name>SenderAddress</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <stringValue>fake@fake.com</stringValue>
+        </value>
+    </variables>
+</Flow>

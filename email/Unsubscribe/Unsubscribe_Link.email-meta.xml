@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EmailTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>46.0</apiVersion>
+    <available>true</available>
+    <description>Visualforce email template for Contacts with Unsubscribe link.</description>
+    <encodingKey>ISO-8859-1</encodingKey>
+    <name>Unsubscribe Link VF Contacts</name>
+    <style>none</style>
+    <subject>Template with Unsubscribe Link</subject>
+    <type>visualforce</type>
+    <uiType>Aloha</uiType>
+</EmailTemplate>
